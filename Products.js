@@ -1,20 +1,55 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
-
+const { Sequelize } = require("sequelize");
 const app = express();
-const port = process.env.PORT || 3400; 
+const port = process.env.PORT || 3400;
 
 const pool = new Pool({
-    host: "localhost",
-    user: "postgres",
-    port: 5432,
-    password: "12345",
-    database: "postgres"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    port: process.env.DB_PORT,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    ssl: {
+        require: true,
+        rejectUnauthorized: false
+    }
 });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+const sequelize = new Sequelize(
+    `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}/${process.env.DB_NAME}`,
+    {
+        dialect: "postgres",
+        protocol: "postgres",
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false 
+            }
+        }
+    }
+);
+
+sequelize.sync().then(() => { console.log("Database is connected") })
+.catch((err) => {
+    console.log(err);
+});
+
+async function testConnection() {
+    try {
+        await sequelize.authenticate();
+        console.log("Connection has been established successfully.");
+    } catch (error) {
+        console.error("Unable to connect to the database:", error);
+    }
+}
+
+testConnection();
 
 app.get('/products', async (request, response) => {
     try {
